@@ -22,16 +22,16 @@ on:
         required: false
   push:
     tags:
-      - 'v*.*.*'  # e.g. v1.2.0 → auto-deploy
+      - 'v*.*.*'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
       JAVA_VERSION: '17'
-      ANDROID_WORKDIR: .
       BUNDLE_DIR: app/build/outputs/bundle/release
       MAPPING_DIR: app/build/outputs/mapping/release
+      WRAPPER_GRADLE_VERSION: '8.7'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,14 +42,20 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
+      - name: Ensure Gradle Wrapper (auto-install Gradle if missing)
+        run: |
+          set -e
+          if [[ ! -f gradlew ]]; then
+            curl -s https://get.sdkman.io | bash
+            source "$HOME/.sdkman/bin/sdkman-init.sh"
+            sdk install gradle $WRAPPER_GRADLE_VERSION
+            gradle wrapper --gradle-version $WRAPPER_GRADLE_VERSION
+          fi
+          chmod +x gradlew
+
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      # Optional: Use tag (vX.Y.Z) as versionName at build time.
-      # Your build.gradle.kts can read this via "project.findProperty("versionName")"
       - name: Extract versionName from tag (if present)
         id: ver
         shell: bash
@@ -69,8 +75,6 @@ jobs:
             ./gradlew bundleRelease --stacktrace
           fi
 
-      # Sign the AAB with your upload keystore (required when NOT using Play App Signing enrollment with GitHub's signing).
-      # If you're using Play App Signing with a registered upload key, keep this step.
       - name: Sign AAB
         id: sign
         uses: r0adkll/sign-android-release@v1
@@ -95,10 +99,7 @@ jobs:
           track: ${{ github.event.inputs.track || 'internal' }}
           status: ${{ github.event.inputs.release_status || 'draft' }}
           userFraction: ${{ github.event.inputs.user_fraction || '0.1' }}
-          # Optional extras:
           mappingFile: ${{ env.MAPPING_DIR }}/mapping.txt
-          # whatsNewDirectory: fastlane/metadata/android  # if you maintain localized "what's new" text
-          # inAppUpdatePriority: 3
 
       - name: Upload artifact (signed AAB)
         if: always()
