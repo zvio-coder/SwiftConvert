@@ -1,0 +1,35 @@
+# Android/Gradle
+*.iml
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+local.properties
+/.idea/
+.idea/*
+!/.idea/codeStyles
+!/.idea/inspectionProfiles
+*.keystore
+*.jks
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Gradle
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Log/Generated
+*.log
+
+# Android Studio
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+
+# App bundles / APKs
+*.apk
+*.aab
