@@ -39,13 +39,25 @@ android {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     packaging {
-        resources.excludes += setOf("META-INF/AL2.0", "META-INF/LGPL2.1")
+        resources.excludes += setOf(
+            "META-INF/AL2.0",
+            "META-INF/LGPL2.1"
+        )
     }
 }
 
 dependencies {
-    // Compose BOM
+    // --- Jetpack Compose ---
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.compose.ui:ui")
@@ -53,19 +65,26 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.3.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    // Lifecycle + ViewModel
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+
+    // File access helpers
     implementation("androidx.documentfile:documentfile:1.0.1")
+
+    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Image loading (optional, for thumbnails)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // Media3 (kept for potential fallback/simple transforms)
+    // --- Media3 (kept for optional/simple transforms) ---
     val media3 = "1.3.1"
     implementation("androidx.media3:media3-transformer:$media3")
     implementation("androidx.media3:media3-common:$media3")
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
 
-    // FFmpegKit for very broad codec/format coverage
+    // --- FFmpegKit for broad codec/format coverage (audio/video/images) ---
     implementation("com.arthenica:ffmpegkit-min-gpl:6.0-2.LTS")
 }
