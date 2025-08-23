@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch: {}
+# (rest of the file unchanged)
+
 
 jobs:
   release-apk:
