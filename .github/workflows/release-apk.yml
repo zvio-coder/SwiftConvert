@@ -5,13 +5,13 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch: {}
-# (rest of the file unchanged)
-
 
 jobs:
   release-apk:
     runs-on: ubuntu-latest
-
+    env:
+      JAVA_VERSION: '17'
+      WRAPPER_GRADLE_VERSION: '8.7'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,13 +20,21 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Ensure Gradle Wrapper (auto-install Gradle if missing)
+        run: |
+          set -e
+          if [[ ! -f gradlew ]]; then
+            curl -s https://get.sdkman.io | bash
+            source "$HOME/.sdkman/bin/sdkman-init.sh"
+            sdk install gradle $WRAPPER_GRADLE_VERSION
+            gradle wrapper --gradle-version $WRAPPER_GRADLE_VERSION
+          fi
+          chmod +x gradlew
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v3
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
 
       - name: Build Release (unsigned)
         run: ./gradlew assembleRelease --stacktrace
