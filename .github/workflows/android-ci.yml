@@ -38,6 +38,7 @@ jobs:
     env:
       JAVA_VERSION: '17'
       APP_MODULE: app
+      WRAPPER_GRADLE_VERSION: '8.7'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,41 +49,38 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
+      - name: Ensure Gradle Wrapper (auto-install Gradle if missing)
+        id: ensure-wrapper
+        shell: bash
+        run: |
+          set -e
+          if [[ ! -f gradlew ]]; then
+            echo "Gradle wrapper missing — installing Gradle via SDKMAN and generating wrapper..."
+            curl -s https://get.sdkman.io | bash
+            source "$HOME/.sdkman/bin/sdkman-init.sh"
+            sdk install gradle $WRAPPER_GRADLE_VERSION
+            gradle --version
+            gradle wrapper --gradle-version $WRAPPER_GRADLE_VERSION
+          fi
+          chmod +x gradlew
+          echo "wrapper_present=true" >> "$GITHUB_OUTPUT"
+
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      # Determine inputs or sensible defaults when triggered by push/PR
       - name: Resolve inputs
         id: cfg
         shell: bash
         run: |
-          # Variant
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.variant }}" ]]; then
-            VARIANT="${{ github.event.inputs.variant }}"
-          else
-            VARIANT="debug"
-          fi
-          echo "variant=$VARIANT" >> "$GITHUB_OUTPUT"
-
-          # Artifact type
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.artifact_type }}" ]]; then
-            ARTIFACT_TYPE="${{ github.event.inputs.artifact_type }}"
-          else
-            ARTIFACT_TYPE="apk"
-          fi
-          echo "artifact_type=$ARTIFACT_TYPE" >> "$GITHUB_OUTPUT"
-
-          # Lint/tests flags
+          VARIANT="${{ github.event.inputs.variant || 'debug' }}"
+          ARTIFACT_TYPE="${{ github.event.inputs.artifact_type || 'apk' }}"
           RUN_LINT="${{ github.event.inputs.run_lint || 'true' }}"
           RUN_TESTS="${{ github.event.inputs.run_tests || 'true' }}"
+          EXTRA_ARGS="${{ github.event.inputs.gradle_args }}"
+          echo "variant=$VARIANT" >> "$GITHUB_OUTPUT"
+          echo "artifact_type=$ARTIFACT_TYPE" >> "$GITHUB_OUTPUT"
           echo "run_lint=$RUN_LINT" >> "$GITHUB_OUTPUT"
           echo "run_tests=$RUN_TESTS" >> "$GITHUB_OUTPUT"
-
-          # Extra args
-          EXTRA_ARGS="${{ github.event.inputs.gradle_args }}"
           echo "gradle_args=$EXTRA_ARGS" >> "$GITHUB_OUTPUT"
 
       - name: Build
@@ -91,18 +89,15 @@ jobs:
           VARIANT="${{ steps.cfg.outputs.variant }}"
           TYPE="${{ steps.cfg.outputs.artifact_type }}"
           EXTRA="${{ steps.cfg.outputs.gradle_args }}"
-
           if [[ "$TYPE" == "aab" && "$VARIANT" == "debug" ]]; then
-            echo "AAB is typically for release; building debug APK instead for convenience."
+            echo "AAB is typically for release; building debug APK instead."
             TYPE="apk"
           fi
-
           if [[ "$TYPE" == "apk" ]]; then
             TASK="assemble${VARIANT^}"
           else
             TASK="bundleRelease"
           fi
-
           echo "Running: ./gradlew $TASK $EXTRA"
           ./gradlew $TASK $EXTRA --stacktrace
 
