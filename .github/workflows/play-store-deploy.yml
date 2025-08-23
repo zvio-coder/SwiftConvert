@@ -32,6 +32,7 @@ jobs:
       BUNDLE_DIR: app/build/outputs/bundle/release
       MAPPING_DIR: app/build/outputs/mapping/release
       WRAPPER_GRADLE_VERSION: '8.7'
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx3g -XX:MaxMetaspaceSize=1g' -Dorg.gradle.warning.mode=all"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,6 +56,13 @@ jobs:
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v3
+
+      # 🩺 Sanity check
+      - name: Gradle sanity check (help & versions)
+        continue-on-error: true
+        run: |
+          ./gradlew --version
+          ./gradlew help -S
 
       - name: Extract versionName from tag (if present)
         id: ver
