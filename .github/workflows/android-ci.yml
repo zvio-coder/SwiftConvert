@@ -51,7 +51,6 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Ensure Gradle Wrapper (auto-install Gradle if missing)
-        shell: bash
         run: |
           set -e
           if [[ ! -f gradlew ]]; then
@@ -68,18 +67,12 @@ jobs:
 
       - name: Resolve inputs
         id: cfg
-        shell: bash
         run: |
-          VARIANT="${{ github.event.inputs.variant || 'debug' }}"
-          TYPE="${{ github.event.inputs.artifact_type || 'apk' }}"
-          RUN_LINT="${{ github.event.inputs.run_lint || 'true' }}"
-          RUN_TESTS="${{ github.event.inputs.run_tests || 'true' }}"
-          EXTRA_ARGS="${{ github.event.inputs.gradle_args }}"
-          echo "variant=$VARIANT" >> "$GITHUB_OUTPUT"
-          echo "artifact_type=$TYPE" >> "$GITHUB_OUTPUT"
-          echo "run_lint=$RUN_LINT" >> "$GITHUB_OUTPUT"
-          echo "run_tests=$RUN_TESTS" >> "$GITHUB_OUTPUT"
-          echo "gradle_args=$EXTRA_ARGS" >> "$GITHUB_OUTPUT"
+          echo "variant=${{ github.event.inputs.variant || 'debug' }}" >> "$GITHUB_OUTPUT"
+          echo "artifact_type=${{ github.event.inputs.artifact_type || 'apk' }}" >> "$GITHUB_OUTPUT"
+          echo "run_lint=${{ github.event.inputs.run_lint || 'true' }}" >> "$GITHUB_OUTPUT"
+          echo "run_tests=${{ github.event.inputs.run_tests || 'true' }}" >> "$GITHUB_OUTPUT"
+          echo "gradle_args=${{ github.event.inputs.gradle_args }}" >> "$GITHUB_OUTPUT"
 
       - name: Gradle sanity check
         continue-on-error: true
@@ -87,75 +80,55 @@ jobs:
           ./gradlew --version
           ./gradlew help -S
 
-      - name: Build (with full log + refresh deps)
-        shell: bash
+      # 🔎 NEW: dependency resolution step (variant-aware), logs uploaded as artifact
+      - name: Resolve dependency trees
+        run: |
+          set -e
+          VARIANT="${{ steps.cfg.outputs.variant }}"
+          CONFIG_COMPILE="compile${VARIANT^}Classpath"
+          CONFIG_RUNTIME="runtime${VARIANT^}Classpath"
+          echo "Resolving :app $CONFIG_COMPILE and $CONFIG_RUNTIME"
+          ./gradlew :app:dependencies --configuration "$CONFIG_COMPILE" --stacktrace 2>&1 | tee deps-${VARIANT}-compile.log
+          ./gradlew :app:dependencies --configuration "$CONFIG_RUNTIME" --stacktrace 2>&1 | tee deps-${VARIANT}-runtime.log
+
+      - name: Build (with log capture + refresh deps)
         run: |
           set -e
           VARIANT="${{ steps.cfg.outputs.variant }}"
           TYPE="${{ steps.cfg.outputs.artifact_type }}"
           EXTRA="${{ steps.cfg.outputs.gradle_args }}"
-
-          # Pick Gradle task explicitly (no ${VARIANT^} bash trick)
+          if [[ "$TYPE" == "aab" && "$VARIANT" == "debug" ]]; then
+            TYPE="apk"
+          fi
           if [[ "$TYPE" == "apk" ]]; then
-            if [[ "$VARIANT" == "release" ]]; then
-              TASK="assembleRelease"
-            else
-              TASK="assembleDebug"
-            fi
+            TASK="assemble${VARIANT^}"
           else
-            # AAB only supported for release in standard setups
             TASK="bundleRelease"
           fi
-
           echo "Running: ./gradlew $TASK $EXTRA --refresh-dependencies"
           ./gradlew $TASK $EXTRA --stacktrace --refresh-dependencies 2>&1 | tee gradle-build.log
 
       - name: Lint
         if: ${{ steps.cfg.outputs.run_lint == 'true' }}
-        run: ./gradlew ${{ steps.cfg.outputs.variant == 'release' && 'lintRelease' || 'lintDebug' }} --stacktrace 2>&1 | tee gradle-lint.log
+        run: ./gradlew lint${{ steps.cfg.outputs.variant == 'release' && 'Release' || 'Debug' }} --stacktrace 2>&1 | tee gradle-lint.log
 
       - name: Unit tests
         if: ${{ steps.cfg.outputs.run_tests == 'true' }}
-        run: ./gradlew ${{ steps.cfg.outputs.variant == 'release' && 'testReleaseUnitTest' || 'testDebugUnitTest' }} --stacktrace 2>&1 | tee gradle-tests.log
+        run: ./gradlew test${{ steps.cfg.outputs.variant == 'release' && 'Release' || 'Debug' }}UnitTest --stacktrace 2>&1 | tee gradle-tests.log
 
-      - name: Show outputs tree (debugging)
-        if: always()
-        run: |
-          echo "=== app/build/outputs ==="
-          ls -R ${{ env.APP_MODULE }}/build/outputs || true
-          echo "=== app/build/intermediates/apk ==="
-          ls -R ${{ env.APP_MODULE }}/build/intermediates/apk || true
-
-      # Primary explicit uploads
-      - name: Upload APK (explicit paths)
+      - name: Upload APK (if built)
         if: ${{ steps.cfg.outputs.artifact_type == 'apk' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-${{ steps.cfg.outputs.variant }}-apk
-          path: |
-            ${{ env.APP_MODULE }}/build/outputs/apk/${{ steps.cfg.outputs.variant }}/*.apk
-            ${{ env.APP_MODULE }}/build/outputs/apk/**/${{ steps.cfg.outputs.variant }}/*.apk
-          if-no-files-found: ignore
+          path: ${{ env.APP_MODULE }}/build/outputs/apk/${{ steps.cfg.outputs.variant }}/*.apk
 
-      - name: Upload AAB (explicit path)
+      - name: Upload AAB (if built)
         if: ${{ steps.cfg.outputs.artifact_type == 'aab' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
-          path: |
-            ${{ env.APP_MODULE }}/build/outputs/bundle/release/*.aab
-          if-no-files-found: ignore
-
-      # Fallback sweep (catch any APK/AAB anywhere under outputs)
-      - name: Upload any APK/AAB (fallback sweep)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-artifacts-sweep
-          path: |
-            ${{ env.APP_MODULE }}/build/outputs/**/*.apk
-            ${{ env.APP_MODULE }}/build/outputs/**/*.aab
-          if-no-files-found: ignore
+          path: ${{ env.APP_MODULE }}/build/outputs/bundle/release/*.aab
 
       - name: Upload Gradle logs
         if: always()
@@ -163,6 +136,8 @@ jobs:
         with:
           name: gradle-logs
           path: |
+            deps-*-compile.log
+            deps-*-runtime.log
             gradle-build.log
             gradle-lint.log
             gradle-tests.log
