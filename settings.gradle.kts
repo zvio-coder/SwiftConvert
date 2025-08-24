@@ -16,8 +16,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // ✅ Add Sonatype releases repo as fallback for FFmpegKit
-        maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases/") }
+        maven { url = uri("https://jitpack.io") } // ✅ Needed for FFmpegKit resolution
     }
 }
 
