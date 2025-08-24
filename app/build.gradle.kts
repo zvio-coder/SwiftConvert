@@ -78,13 +78,13 @@ dependencies {
     // Image loading (optional)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // --- Media3 (optional/simple transforms) ---
+    // --- Media3 ---
     val media3 = "1.3.1"
     implementation("androidx.media3:media3-transformer:$media3")
     implementation("androidx.media3:media3-common:$media3")
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
 
-    // --- FFmpegKit (from JitPack, correct coordinates) ---
-    implementation("com.github.tanersener:ffmpeg-kit:6.0-2.LTS")
+    // --- FFmpegKit (official Maven Central coordinates) ---
+    implementation("com.arthenica:ffmpeg-kit-full:6.0-2.LTS")
 }
