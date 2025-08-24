@@ -75,16 +75,16 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // Image loading (optional, for thumbnails)
+    // Image loading (optional)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // --- Media3 (kept for optional/simple transforms) ---
+    // --- Media3 (optional/simple transforms) ---
     val media3 = "1.3.1"
     implementation("androidx.media3:media3-transformer:$media3")
     implementation("androidx.media3:media3-common:$media3")
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
 
-    // --- FFmpegKit (correct artifact name) ---
+    // --- FFmpegKit (correct artifact on Maven Central) ---
     implementation("com.arthenica:ffmpeg-kit-min-gpl:6.0-2.LTS")
 }
