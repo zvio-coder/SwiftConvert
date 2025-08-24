@@ -86,5 +86,5 @@ dependencies {
     implementation("androidx.media3:media3-effect:$media3")
 
     // --- FFmpegKit (from JitPack, correct coordinates) ---
-    implementation("com.github.arthenica:ffmpeg-kit:6.0-2.LTS")
+    implementation("com.github.tanersener:ffmpeg-kit:6.0-2.LTS")
 }
