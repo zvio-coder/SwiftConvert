@@ -14,9 +14,10 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // Only the repos we actually need
         google()
         mavenCentral()
+        // ✅ Add Sonatype releases repo as fallback for FFmpegKit
+        maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases/") }
     }
 }
 
