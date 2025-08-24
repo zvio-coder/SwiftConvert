@@ -3,6 +3,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        maven { url = uri("https://jitpack.io") } // ✅ added JitPack for FFmpegKit
     }
     plugins {
         // Pin plugin versions so CI resolves them reliably
@@ -16,7 +17,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") } // ✅ Needed for FFmpegKit resolution
+        maven { url = uri("https://jitpack.io") } // ✅ ensure available for dependencies
     }
 }
 
