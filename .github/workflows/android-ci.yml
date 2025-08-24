@@ -54,6 +54,7 @@ jobs:
         run: |
           set -e
           if [[ ! -f gradlew ]]; then
+            echo "Gradle wrapper missing — installing via SDKMAN and generating wrapper..."
             curl -s https://get.sdkman.io | bash
             source "$HOME/.sdkman/bin/sdkman-init.sh"
             sdk install gradle $WRAPPER_GRADLE_VERSION
@@ -73,13 +74,14 @@ jobs:
           echo "run_tests=${{ github.event.inputs.run_tests || 'true' }}" >> "$GITHUB_OUTPUT"
           echo "gradle_args=${{ github.event.inputs.gradle_args }}" >> "$GITHUB_OUTPUT"
 
+      # 🩺 Sanity check (surfaces config errors early but doesn't fail job)
       - name: Gradle sanity check
         continue-on-error: true
         run: |
           ./gradlew --version
           ./gradlew help -S
 
-      - name: Build (with log capture)
+      - name: Build (with log capture + refresh deps)
         run: |
           set -e
           VARIANT="${{ steps.cfg.outputs.variant }}"
@@ -93,8 +95,8 @@ jobs:
           else
             TASK="bundleRelease"
           fi
-          echo "Running: ./gradlew $TASK $EXTRA"
-          ./gradlew $TASK $EXTRA --stacktrace | tee gradle-build.log
+          echo "Running: ./gradlew $TASK $EXTRA --refresh-dependencies"
+          ./gradlew $TASK $EXTRA --stacktrace --refresh-dependencies | tee gradle-build.log
 
       - name: Lint
         if: ${{ steps.cfg.outputs.run_lint == 'true' }}
