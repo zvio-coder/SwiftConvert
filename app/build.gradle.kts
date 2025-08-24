@@ -14,7 +14,24 @@ android {
         versionCode = 3
         versionName = "1.2.0"
 
+        // Compose vector drawables support
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    // ✅ Ensure CI always produces an installable APK
+    signingConfigs {
+        // Android Gradle Plugin provides a default debug keystore; this just makes it explicit
+        getByName("debug") {
+            // uses default debug.keystore from ~/.android
+        }
+        // For CI convenience you can also sign release with the debug key to force an APK output.
+        // (Your Play workflow will sign AAB separately with the real upload key.)
+        create("ciRelease") {
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
@@ -24,9 +41,22 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // ⚠️ For CI artifacts only. Remove or replace with real signing for production.
+            signingConfig = signingConfigs.getByName("ciRelease")
         }
         debug {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // Produce a universal debug APK for easy sideload/testing (keeps splits for release if you want)
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true // 👉 creates app-universal-debug.apk
         }
     }
 
@@ -85,6 +115,6 @@ dependencies {
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
 
-    // --- FFmpegKit (LTS via JitPack) ---
+    // --- FFmpegKit (LTS via JitPack/Maven routing in settings.gradle.kts) ---
     implementation("com.arthenica:ffmpeg-kit-min-gpl:6.0-2.LTS")
 }
