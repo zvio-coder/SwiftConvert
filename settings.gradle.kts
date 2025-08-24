@@ -3,10 +3,9 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven { url = uri("https://jitpack.io") } // ✅ added JitPack for FFmpegKit
+        maven { url = uri("https://jitpack.io") } // ✅ For FFmpegKit
     }
     plugins {
-        // Pin plugin versions so CI resolves them reliably
         id("com.android.application") version "8.5.2"
         id("org.jetbrains.kotlin.android") version "1.9.24"
     }
