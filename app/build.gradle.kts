@@ -85,6 +85,6 @@ dependencies {
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
 
-    // --- FFmpegKit (LTS release) ---
+    // --- FFmpegKit (LTS via JitPack) ---
     implementation("com.arthenica:ffmpeg-kit-min-gpl:6.0-2.LTS")
 }
