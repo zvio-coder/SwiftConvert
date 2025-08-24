@@ -51,16 +51,12 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Ensure Gradle Wrapper (auto-install Gradle if missing)
-        id: ensure-wrapper
-        shell: bash
         run: |
           set -e
           if [[ ! -f gradlew ]]; then
-            echo "Gradle wrapper missing — installing Gradle via SDKMAN and generating wrapper..."
             curl -s https://get.sdkman.io | bash
             source "$HOME/.sdkman/bin/sdkman-init.sh"
             sdk install gradle $WRAPPER_GRADLE_VERSION
-            gradle --version
             gradle wrapper --gradle-version $WRAPPER_GRADLE_VERSION
           fi
           chmod +x gradlew
@@ -70,34 +66,26 @@ jobs:
 
       - name: Resolve inputs
         id: cfg
-        shell: bash
         run: |
-          VARIANT="${{ github.event.inputs.variant || 'debug' }}"
-          ARTIFACT_TYPE="${{ github.event.inputs.artifact_type || 'apk' }}"
-          RUN_LINT="${{ github.event.inputs.run_lint || 'true' }}"
-          RUN_TESTS="${{ github.event.inputs.run_tests || 'true' }}"
-          EXTRA_ARGS="${{ github.event.inputs.gradle_args }}"
-          echo "variant=$VARIANT" >> "$GITHUB_OUTPUT"
-          echo "artifact_type=$ARTIFACT_TYPE" >> "$GITHUB_OUTPUT"
-          echo "run_lint=$RUN_LINT" >> "$GITHUB_OUTPUT"
-          echo "run_tests=$RUN_TESTS" >> "$GITHUB_OUTPUT"
-          echo "gradle_args=$EXTRA_ARGS" >> "$GITHUB_OUTPUT"
+          echo "variant=${{ github.event.inputs.variant || 'debug' }}" >> "$GITHUB_OUTPUT"
+          echo "artifact_type=${{ github.event.inputs.artifact_type || 'apk' }}" >> "$GITHUB_OUTPUT"
+          echo "run_lint=${{ github.event.inputs.run_lint || 'true' }}" >> "$GITHUB_OUTPUT"
+          echo "run_tests=${{ github.event.inputs.run_tests || 'true' }}" >> "$GITHUB_OUTPUT"
+          echo "gradle_args=${{ github.event.inputs.gradle_args }}" >> "$GITHUB_OUTPUT"
 
-      # 🩺 Sanity check to surface configuration errors early (but don't fail the job)
-      - name: Gradle sanity check (help & versions)
+      - name: Gradle sanity check
         continue-on-error: true
         run: |
           ./gradlew --version
           ./gradlew help -S
 
-      - name: Build
+      - name: Build (with log capture)
         run: |
           set -e
           VARIANT="${{ steps.cfg.outputs.variant }}"
           TYPE="${{ steps.cfg.outputs.artifact_type }}"
           EXTRA="${{ steps.cfg.outputs.gradle_args }}"
           if [[ "$TYPE" == "aab" && "$VARIANT" == "debug" ]]; then
-            echo "AAB is typically for release; building debug APK instead."
             TYPE="apk"
           fi
           if [[ "$TYPE" == "apk" ]]; then
@@ -106,33 +94,36 @@ jobs:
             TASK="bundleRelease"
           fi
           echo "Running: ./gradlew $TASK $EXTRA"
-          ./gradlew $TASK $EXTRA --stacktrace
+          ./gradlew $TASK $EXTRA --stacktrace | tee gradle-build.log
 
       - name: Lint
         if: ${{ steps.cfg.outputs.run_lint == 'true' }}
-        run: ./gradlew lint${{ steps.cfg.outputs.variant == 'release' && 'Release' || 'Debug' }} --stacktrace
+        run: ./gradlew lint${{ steps.cfg.outputs.variant == 'release' && 'Release' || 'Debug' }} --stacktrace | tee gradle-lint.log
 
       - name: Unit tests
         if: ${{ steps.cfg.outputs.run_tests == 'true' }}
-        run: ./gradlew test${{ steps.cfg.outputs.variant == 'release' && 'Release' || 'Debug' }}UnitTest --stacktrace
+        run: ./gradlew test${{ steps.cfg.outputs.variant == 'release' && 'Release' || 'Debug' }}UnitTest --stacktrace | tee gradle-tests.log
 
-      - name: Upload APK artifact (if built)
+      - name: Upload APK (if built)
         if: ${{ steps.cfg.outputs.artifact_type == 'apk' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-${{ steps.cfg.outputs.variant }}-apk
           path: ${{ env.APP_MODULE }}/build/outputs/apk/${{ steps.cfg.outputs.variant }}/*.apk
 
-      - name: Upload AAB artifact (if built)
+      - name: Upload AAB (if built)
         if: ${{ steps.cfg.outputs.artifact_type == 'aab' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
           path: ${{ env.APP_MODULE }}/build/outputs/bundle/release/*.aab
 
-      - name: Upload Lint Report
-        if: ${{ always() && steps.cfg.outputs.run_lint == 'true' }}
+      - name: Upload Gradle logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lint-report-${{ steps.cfg.outputs.variant }}
-          path: ${{ env.APP_MODULE }}/build/reports/lint-results-${{ steps.cfg.outputs.variant }}.html
+          name: gradle-logs
+          path: |
+            gradle-build.log
+            gradle-lint.log
+            gradle-tests.log
