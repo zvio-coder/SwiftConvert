@@ -85,6 +85,6 @@ dependencies {
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
 
-    // --- FFmpegKit (official Maven Central coordinates) ---
-    implementation("com.arthenica:ffmpeg-kit-full:6.0-2.LTS")
+    // --- FFmpegKit (correct artifact from Maven Central) ---
+    implementation("com.arthenica:ffmpeg-kit-android-full:6.0-2.LTS")
 }
