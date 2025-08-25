@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- ✅ Parent is a Material Components XML theme providing Theme.Material3.* -->
+    <!-- Parent Material Components theme -->
     <style name="Theme.SwiftConvert" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- You can customize colors to match Compose if needed -->
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:navigationBarColor">@color/black</item>
     </style>
