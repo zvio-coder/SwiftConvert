@@ -86,5 +86,5 @@ dependencies {
     implementation("androidx.media3:media3-effect:$media3")
 
     // --- FFmpegKit (correct published artifact) ---
-    implementation("com.arthenica:ffmpeg-kit-full:6.0-1.LTS")
+    implementation("com.arthenica:ffmpeg-kit-full-gpl:6.0-1.LTS")
 }
