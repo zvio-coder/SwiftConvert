@@ -85,6 +85,6 @@ dependencies {
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
 
-    // --- FFmpegKit (confirmed stable version available) ---
-    implementation("com.arthenica:ffmpeg-kit-full:5.1")
+    // --- FFmpegKit (confirmed stable artifact) ---
+    implementation("com.arthenica:ffmpeg-kit-min-gpl:5.1")
 }
