@@ -48,8 +48,6 @@ android {
 }
 
 // ---- Optional local AAR wiring (FFmpegKit) ----------------------------------
-// If CI (or you locally) place an AAR at app/libs/ffmpeg-kit.aar, we use it.
-// If it isn't present, the app still builds without FFmpegKit.
 val ffmpegAar = File(projectDir, "libs/ffmpeg-kit.aar")
 if (ffmpegAar.exists()) {
     println("FFmpegKit AAR found: ${ffmpegAar.absolutePath}")
@@ -58,7 +56,6 @@ if (ffmpegAar.exists()) {
     println("FFmpegKit AAR not found (building without FFmpegKit). " +
             "Place an AAR at app/libs/ffmpeg-kit.aar to enable it.")
 }
-
 // -----------------------------------------------------------------------------
 
 dependencies {
@@ -69,6 +66,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3:1.3.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // ✅ Add Material Components so XML parent Theme.Material3.* exists
+    implementation("com.google.android.material:material:1.12.0")
 
     // Lifecycle + ViewModel
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
@@ -83,7 +83,7 @@ dependencies {
     // Image loading (optional)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // --- Media3 (basic transforms where possible) ---
+    // --- Media3 (simple transforms) ---
     val media3 = "1.3.1"
     implementation("androidx.media3:media3-transformer:$media3")
     implementation("androidx.media3:media3-common:$media3")
