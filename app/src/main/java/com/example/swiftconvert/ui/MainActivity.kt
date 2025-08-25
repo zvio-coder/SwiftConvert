@@ -21,26 +21,27 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val picker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-            if (uri != null) {
-                contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-                )
-            }
-            vm.setSelected(uri)
-        }
-
         setContent {
             MaterialTheme {
                 val state by vm.state.collectAsState()
+
+                // ✅ Proper Compose launcher
+                val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+                    if (uri != null) {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        )
+                    }
+                    vm.setSelected(uri)
+                }
+
                 Surface(Modifier.fillMaxSize()) {
                     Column(
                         Modifier.fillMaxSize().padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(text = "SwiftConvert", style = MaterialTheme.typography.headlineSmall)
+                        Text("SwiftConvert", style = MaterialTheme.typography.headlineSmall)
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(onClick = { picker.launch(arrayOf("*/*")) }) {
