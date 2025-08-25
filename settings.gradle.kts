@@ -3,7 +3,6 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases/") } // ✅ added Sonatype
     }
     plugins {
         id("com.android.application") version "8.5.2"
@@ -16,7 +15,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases/") } // ✅ added Sonatype
+        // We keep this clean; FFmpegKit will be provided as a local AAR at build time.
     }
 }
 
