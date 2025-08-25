@@ -39,12 +39,12 @@ object Media3Transcoder {
                 mediaItem,
                 outFile.absolutePath,
                 object : Transformer.Listener {
-                    override fun onCompleted(exportResult: ExportResult) {
+                    override fun onCompleted(result: ExportResult) {
                         if (!cont.isCompleted) cont.resume(Result(true, null))
                     }
 
-                    override fun onError(exportResult: ExportResult, exception: ExportException) {
-                        if (!cont.isCompleted) cont.resume(Result(false, exception.message))
+                    override fun onError(error: ExportException, result: ExportResult) {
+                        if (!cont.isCompleted) cont.resume(Result(false, error.message))
                     }
                 }
             )
