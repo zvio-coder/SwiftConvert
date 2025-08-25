@@ -12,13 +12,11 @@ on:
         type: choice
         options: [debug, release]
         default: debug
-        required: true
       artifact_type:
         description: "What to build"
         type: choice
         options: [apk, aab]
         default: apk
-        required: true
       run_lint:
         description: "Run Android Lint?"
         type: boolean
@@ -40,6 +38,7 @@ jobs:
       APP_MODULE: app
       WRAPPER_GRADLE_VERSION: '8.7'
       GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx3g -XX:MaxMetaspaceSize=1g' -Dorg.gradle.warning.mode=all"
+      FFMPEGKIT_AAR_URL: ${{ secrets.FFMPEGKIT_AAR_URL }}  # <-- set this secret to enable FFmpegKit
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,7 +53,6 @@ jobs:
         run: |
           set -e
           if [[ ! -f gradlew ]]; then
-            echo "Gradle wrapper missing — installing via SDKMAN and generating wrapper..."
             curl -s https://get.sdkman.io | bash
             source "$HOME/.sdkman/bin/sdkman-init.sh"
             sdk install gradle $WRAPPER_GRADLE_VERSION
@@ -64,6 +62,18 @@ jobs:
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v3
+
+      # 🔽 Optional: fetch FFmpegKit AAR from your URL (GitHub Release, S3, etc.)
+      - name: Fetch FFmpegKit AAR (optional)
+        run: |
+          mkdir -p app/libs
+          if [[ -n "$FFMPEGKIT_AAR_URL" ]]; then
+            echo "Downloading FFmpegKit AAR from: $FFMPEGKIT_AAR_URL"
+            curl -L "$FFMPEGKIT_AAR_URL" -o app/libs/ffmpeg-kit.aar
+            ls -lh app/libs || true
+          else
+            echo "FFMPEGKIT_AAR_URL not set; building without FFmpegKit."
+          fi
 
       - name: Resolve inputs
         id: cfg
@@ -80,33 +90,22 @@ jobs:
           ./gradlew --version
           ./gradlew help -S
 
-      # 🔎 NEW: dependency resolution step (variant-aware), logs uploaded as artifact
       - name: Resolve dependency trees
         run: |
-          set -e
           VARIANT="${{ steps.cfg.outputs.variant }}"
-          CONFIG_COMPILE="compile${VARIANT^}Classpath"
-          CONFIG_RUNTIME="runtime${VARIANT^}Classpath"
-          echo "Resolving :app $CONFIG_COMPILE and $CONFIG_RUNTIME"
-          ./gradlew :app:dependencies --configuration "$CONFIG_COMPILE" --stacktrace 2>&1 | tee deps-${VARIANT}-compile.log
-          ./gradlew :app:dependencies --configuration "$CONFIG_RUNTIME" --stacktrace 2>&1 | tee deps-${VARIANT}-runtime.log
+          ./gradlew :app:dependencies --configuration compile${VARIANT^}Classpath --stacktrace 2>&1 | tee deps-${VARIANT}-compile.log
+          ./gradlew :app:dependencies --configuration runtime${VARIANT^}Classpath --stacktrace 2>&1 | tee deps-${VARIANT}-runtime.log
 
-      - name: Build (with log capture + refresh deps)
+      - name: Build (with log capture)
         run: |
           set -e
           VARIANT="${{ steps.cfg.outputs.variant }}"
           TYPE="${{ steps.cfg.outputs.artifact_type }}"
           EXTRA="${{ steps.cfg.outputs.gradle_args }}"
-          if [[ "$TYPE" == "aab" && "$VARIANT" == "debug" ]]; then
-            TYPE="apk"
-          fi
-          if [[ "$TYPE" == "apk" ]]; then
-            TASK="assemble${VARIANT^}"
-          else
-            TASK="bundleRelease"
-          fi
-          echo "Running: ./gradlew $TASK $EXTRA --refresh-dependencies"
-          ./gradlew $TASK $EXTRA --stacktrace --refresh-dependencies 2>&1 | tee gradle-build.log
+          if [[ "$TYPE" == "aab" && "$VARIANT" == "debug" ]]; then TYPE="apk"; fi
+          if [[ "$TYPE" == "apk" ]]; then TASK="assemble${VARIANT^}"; else TASK="bundleRelease"; fi
+          echo "Running: ./gradlew $TASK $EXTRA"
+          ./gradlew $TASK $EXTRA --stacktrace 2>&1 | tee gradle-build.log
 
       - name: Lint
         if: ${{ steps.cfg.outputs.run_lint == 'true' }}
