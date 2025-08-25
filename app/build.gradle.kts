@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+import java.io.File
+
 android {
     namespace = "com.example.swiftconvert"
     compileSdk = 34
@@ -13,7 +15,6 @@ android {
         targetSdk = 34
         versionCode = 3
         versionName = "1.2.0"
-
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -25,9 +26,7 @@ android {
                 "proguard-rules.pro"
             )
         }
-        debug {
-            isMinifyEnabled = false
-        }
+        debug { isMinifyEnabled = false }
     }
 
     buildFeatures {
@@ -35,26 +34,32 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
+    composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 
     packaging {
-        resources.excludes += setOf(
-            "META-INF/AL2.0",
-            "META-INF/LGPL2.1"
-        )
+        resources.excludes += setOf("META-INF/AL2.0","META-INF/LGPL2.1")
     }
 }
+
+// ---- Optional local AAR wiring (FFmpegKit) ----------------------------------
+// If CI (or you locally) place an AAR at app/libs/ffmpeg-kit.aar, we use it.
+// If it isn't present, the app still builds without FFmpegKit.
+val ffmpegAar = File(projectDir, "libs/ffmpeg-kit.aar")
+if (ffmpegAar.exists()) {
+    println("FFmpegKit AAR found: ${ffmpegAar.absolutePath}")
+    dependencies.add("implementation", files(ffmpegAar))
+} else {
+    println("FFmpegKit AAR not found (building without FFmpegKit). " +
+            "Place an AAR at app/libs/ffmpeg-kit.aar to enable it.")
+}
+
+// -----------------------------------------------------------------------------
 
 dependencies {
     // --- Jetpack Compose ---
@@ -78,13 +83,10 @@ dependencies {
     // Image loading (optional)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // --- Media3 ---
+    // --- Media3 (basic transforms where possible) ---
     val media3 = "1.3.1"
     implementation("androidx.media3:media3-transformer:$media3")
     implementation("androidx.media3:media3-common:$media3")
     implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.media3:media3-effect:$media3")
-
-    // --- FFmpegKit (confirmed stable artifact) ---
-    implementation("com.arthenica:ffmpeg-kit-min-gpl:5.1")
 }
