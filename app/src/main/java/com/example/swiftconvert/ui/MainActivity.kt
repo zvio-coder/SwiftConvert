@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 val state by vm.state.collectAsState()
 
-                // ✅ Proper Compose launcher
+                // ✅ Correct: defined inside Compose
                 val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
                     if (uri != null) {
                         contentResolver.takePersistableUriPermission(
